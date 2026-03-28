@@ -3,6 +3,7 @@ import pickle
 import pandas as pd
 import requests
 import time
+import os
 
 # TMDB API KEY
 API_KEY = "8536c919ac2517e129f0c3051e787693"
