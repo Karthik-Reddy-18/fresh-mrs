@@ -6,7 +6,7 @@ import time
 import os
 import gdown
 
-API_KEY = "YOUR_TMDB_API_KEY"
+API_KEY = "8536c919ac2517e129f0c3051e787693"
 
 # ensure folder exists
 os.makedirs("artifacts", exist_ok=True)
@@ -27,7 +27,7 @@ def load_data():
 
 movies, similarity = load_data()
 
-
+ 
 def fetch_poster(movie_id):
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
 
