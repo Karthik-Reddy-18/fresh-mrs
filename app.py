@@ -4,25 +4,30 @@ import pandas as pd
 import requests
 import time
 import os
-
-# TMDB API KEY
-API_KEY = "8536c919ac2517e129f0c3051e787693"
 import gdown
 
-# Download similarity.pkl if not present
+API_KEY = "YOUR_TMDB_API_KEY"
+
+# ensure folder exists
+os.makedirs("artifacts", exist_ok=True)
+
+# download similarity file if missing
 if not os.path.exists("artifacts/similarity.pkl"):
     url = "https://drive.google.com/uc?id=1OYn0DPYnBFBgnzrczSDLp6hbQ8MLRnQr"
     gdown.download(url, "artifacts/similarity.pkl", quiet=False)
 
-# Load movie data
-movies_dict = pickle.load(open('artifacts/movies_dict.pkl', 'rb'))
-movies = pd.DataFrame(movies_dict)
 
-# Load similarity matrix
-similarity = pickle.load(open('artifacts/similarity.pkl', 'rb'))
+@st.cache_resource
+def load_data():
+    movies_dict = pickle.load(open('artifacts/movies_dict.pkl', 'rb'))
+    movies = pd.DataFrame(movies_dict)
+    similarity = pickle.load(open('artifacts/similarity.pkl', 'rb'))
+    return movies, similarity
 
 
-# Function to fetch movie poster
+movies, similarity = load_data()
+
+
 def fetch_poster(movie_id):
     url = f"https://api.themoviedb.org/3/movie/{movie_id}?api_key={API_KEY}&language=en-US"
 
@@ -37,15 +42,12 @@ def fetch_poster(movie_id):
         else:
             return "https://via.placeholder.com/500x750?text=No+Image"
 
-    except requests.exceptions.RequestException as e:
-        print("API Error:", e)
+    except requests.exceptions.RequestException:
         return "https://via.placeholder.com/500x750?text=Error"
 
 
-# Recommendation function
 def recommend(movie):
     movie_index = movies[movies['title'] == movie].index[0]
-
     distances = similarity[movie_index]
 
     movies_list = sorted(
@@ -54,21 +56,18 @@ def recommend(movie):
         key=lambda x: x[1]
     )[1:6]
 
-    recommended_movies_name = []
-    recommended_movies_poster = []
+    names = []
+    posters = []
 
     for i in movies_list:
         movie_id = movies.iloc[i[0]].movie_id
+        names.append(movies.iloc[i[0]].title)
+        posters.append(fetch_poster(movie_id))
+        time.sleep(0.2)
 
-        recommended_movies_name.append(movies.iloc[i[0]].title)
-        recommended_movies_poster.append(fetch_poster(movie_id))
-
-        time.sleep(0.2)  # avoid API rate limit
-
-    return recommended_movies_name, recommended_movies_poster
+    return names, posters
 
 
-# Streamlit UI
 st.title("🎬 Movie Recommender System")
 
 selected_movie = st.selectbox(
@@ -79,24 +78,9 @@ selected_movie = st.selectbox(
 if st.button("Recommend"):
     names, posters = recommend(selected_movie)
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    cols = st.columns(5)
 
-    with col1:
-        st.text(names[0])
-        st.image(posters[0])
-
-    with col2:
-        st.text(names[1])
-        st.image(posters[1])
-
-    with col3:
-        st.text(names[2])
-        st.image(posters[2])
-
-    with col4:
-        st.text(names[3])
-        st.image(posters[3])
-
-    with col5:
-        st.text(names[4])
-        st.image(posters[4])
+    for i in range(5):
+        with cols[i]:
+            st.text(names[i])
+            st.image(posters[i])
